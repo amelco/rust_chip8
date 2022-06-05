@@ -8,7 +8,6 @@ pub struct Cpu {
     pc: u16,
     prev_pc: u16,
     i: u16,
-    dt: u8,
     ret_stack: Vec<u16>,
 }
 
@@ -19,7 +18,6 @@ impl Cpu {
             pc: PROGRAM_START,
             prev_pc: 0,
             i: 0,
-            dt: 0,
             ret_stack: Vec::<u16>::new(),
         }
     }
@@ -168,20 +166,29 @@ impl Cpu {
                 match kk {
                     0x07 => {
                         // Vx = delay timer value
-                        self.write_reg_vx(x, self.dt);
+                        self.write_reg_vx(x, bus.get_delay_timer());
                         self.increment_pc();
                     },
                     0x15 => {
                         // delay timer = Vx
-                        self.dt = self.read_reg_vx(x);
+                        bus.set_delay_timer(self.read_reg_vx(x));
                         self.increment_pc();
                     },
                     0x1E => {
                         // I = I + Vx
-                        let new_i = self.i + self.read_reg_vx(x) as u16;
+                        let vx = self.read_reg_vx(x);
+                        let new_i = self.i + vx as u16;
                         self.write_reg_i(new_i);
                         self.increment_pc();
-                    }
+                    },
+                    0x65 => {
+                        // load v0 to vx from memory starting at I
+                        for reg in 0..x+1 {
+                            let value = bus.ram_read_byte(self.i + reg as u16);
+                            self.write_reg_vx(reg, value);
+                            self.increment_pc();
+                        }
+                    },
                     _ => panic!("Unrecognized instruction at {:#X}: {:#X}", self.pc, instruction)
                 }
             },
@@ -216,7 +223,7 @@ impl Cpu {
         else {
             self.write_reg_vx(0xF, 0);
         }
-        // bus.present_screen();
+        bus.present_screen();
     }
 
     fn increment_pc(&mut self) {

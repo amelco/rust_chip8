@@ -1,11 +1,13 @@
 use crate::keyboard::Keyboard;
 use crate::display::Display;
 use crate::ram::Ram;
+use std::fmt;
 
 pub struct Bus {
     ram: Ram,
     keyboard: Keyboard,
-    display: Display
+    display: Display,
+    delay_timer: u8,
 }
 
 impl Bus {
@@ -13,7 +15,8 @@ impl Bus {
         Bus {
             ram: Ram::new(),
             keyboard: Keyboard::new(),
-            display: Display::new()
+            display: Display::new(),
+            delay_timer: 0,
         }
     }
 
@@ -39,5 +42,27 @@ impl Bus {
 
     pub fn clear_screen(&mut self) {
         self.display.clear_screen();
+    }
+
+    pub fn get_delay_timer(&self) -> u8{
+        self.delay_timer
+    }
+
+    pub fn set_delay_timer(&mut self, value: u8) {
+        self.delay_timer = value;
+    }
+
+    pub fn tick(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+        self.delay_timer = 0
+    }
+}
+
+
+impl fmt::Debug for Bus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\n\tDelay timer: {:?}", self.delay_timer)
     }
 }
