@@ -140,7 +140,9 @@ impl Cpu {
             },
             0xD => {
                 // Draw sprite
-                self.debug_draw_sprite(bus, x, y, n);
+                let vx = self.read_reg_vx(x);
+                let vy = self.read_reg_vx(y);
+                self.debug_draw_sprite(bus, vx, vy, n);
                 self.increment_pc();
             },
             0xE => {
