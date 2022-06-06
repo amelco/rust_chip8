@@ -20,10 +20,15 @@ impl Chip8 {
             self.bus.ram_write_byte(cpu::PROGRAM_START + (i as u16), data[i]);
         }
     }
+    
     pub fn run_instruction(&mut self) {
         self.bus.tick();
         self.cpu.run_instruction(&mut self.bus);
         println!("Cpu state: {:?}\n", self.cpu);
         println!("Bus state: {:?}\n", self.bus);
+    }
+
+    pub fn get_display_buffer(&self) -> &[u8] {
+        self.bus.get_display_buffer()
     }
 }
