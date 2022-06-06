@@ -12,8 +12,8 @@ impl Display {
         }
     }
 
-    fn get_index_from_coords(x: u8, y: u8) -> usize {
-        y as usize * WIDTH + x as usize
+    pub fn get_index_from_coords(x: usize, y: usize) -> usize {
+        y * WIDTH + x
     }
 
     pub fn debug_draw_sprite(&mut self, mut byte: u8, x: u8, y: u8) -> bool {
@@ -22,7 +22,7 @@ impl Display {
         let coord_y = y as usize;
 
         for _ in 0..8 {
-            let index = Display::get_index_from_coords(coord_x as u8, coord_y as u8);
+            let index = Display::get_index_from_coords(coord_x, coord_y);
             match (byte & 0b1000_0000) >> 7 {
                 0 => {
                     if self.screen[index] == 1 {
