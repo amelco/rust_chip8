@@ -6,7 +6,6 @@ pub const PROGRAM_START: u16 = 0x200;
 pub struct Cpu {
     vx: [u8; 16],
     pc: u16,
-    prev_pc: u16,
     i: u16,
     ret_stack: Vec<u16>,
 }
@@ -16,7 +15,6 @@ impl Cpu {
         Cpu {
             vx: [0; 16],
             pc: PROGRAM_START,
-            prev_pc: 0,
             i: 0,
             ret_stack: Vec::<u16>::new(),
         }
@@ -34,11 +32,6 @@ impl Cpu {
         let x   = ((instruction & 0x0F00) >> 8) as u8;
         let y   = ((instruction & 0x00F0) >> 4) as u8;
         println!("nnn={:#X}, kk={:#X}, n={:#X}, x={:#X}, y={:#X}", nnn,kk,n,x,y);
-
-        if self.pc == self.prev_pc {
-            panic!("Please increase program counter");
-        }
-        self.prev_pc = self.pc;
 
         match (instruction & 0xF000) >> 12 {
             0x0 => {
@@ -146,17 +139,17 @@ impl Cpu {
                 self.increment_pc();
             },
             0xE => {
-                let key = self.read_reg_vx(x);
+                let vx = self.read_reg_vx(x);
                 match kk {
                     0x9E => {
                         // if (key() == Vx) then skips to the next instruction
-                        if bus.key_pressed(key) {
+                        if bus.is_key_pressed(vx) {
                             self.increment_pc();
                         }
                     },
                     0xA1 => {
                         // if (key() != Vx) then skips to the next instruction
-                        if !bus.key_pressed(key) {
+                        if !bus.is_key_pressed(vx) {
                             self.increment_pc();
                         }
                     },
@@ -170,6 +163,16 @@ impl Cpu {
                         // Vx = delay timer value
                         self.write_reg_vx(x, bus.get_delay_timer());
                         self.increment_pc();
+                    },
+                    0x0A => {
+                        let key = bus.get_key_pressed();
+                        match key {
+                            Some(val) => {
+                                self.write_reg_vx(x, val);
+                                self.increment_pc();
+                            },
+                            None => ()
+                        }
                     },
                     0x15 => {
                         // delay timer = Vx
@@ -213,9 +216,9 @@ impl Cpu {
     fn debug_draw_sprite(&mut self, bus: &mut Bus, x: u8, y: u8, height: u8) {
         println!("Drawing sprite at ({}, {})", x, y);
         let mut should_set_vf = false;
-        for y in 0..height {
-            let byte = bus.ram_read_byte(self.i + (y as u16));
-            if bus.debug_draw_sprite(byte, x, y) {
+        for sprite_y in 0..height {
+            let byte = bus.ram_read_byte(self.i + (sprite_y as u16));
+            if bus.debug_draw_sprite(byte, x, y + sprite_y) {
                 should_set_vf = true;
             }
         }
@@ -225,7 +228,7 @@ impl Cpu {
         else {
             self.write_reg_vx(0xF, 0);
         }
-        bus.present_screen();
+        // bus.present_screen();
     }
 
     fn increment_pc(&mut self) {

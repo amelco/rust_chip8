@@ -23,16 +23,14 @@ impl Display {
 
         for _ in 0..8 {
             let index = Display::get_index_from_coords(coord_x, coord_y);
-            match (byte & 0b1000_0000) >> 7 {
-                0 => {
-                    if self.screen[index] == 1 {
-                        flipped = true;
-                    }
-                    self.screen[index] = 0
-                },
-                1 => self.screen[index] = 1,
-                _ => unreachable!()
-            };
+            let bit = (byte & 0b1000_0000) >> 7;
+            let prev_value = self.screen[index];
+            self.screen[index] ^= bit;
+
+            if prev_value == 1 && self.screen[index] == 0 {
+                flipped = true;
+            }
+
             coord_x += 1;
             byte = byte << 1;
         }
