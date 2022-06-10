@@ -59,9 +59,17 @@ impl Cpu {
                 self.pc = nnn;
             },
             0x3 => {
-                // if Vx = kk
+                // if Vx == kk
                 let vx = self.read_reg_vx(x);
                 if vx == kk {
+                    self.increment_pc();
+                }
+                self.increment_pc();
+            },
+            0x4 => {
+                // if Vx != kk
+                let vx = self.read_reg_vx(x);
+                if vx != kk {
                     self.increment_pc();
                 }
                 self.increment_pc();
@@ -177,6 +185,11 @@ impl Cpu {
                     0x15 => {
                         // delay timer = Vx
                         bus.set_delay_timer(self.read_reg_vx(x));
+                        self.increment_pc();
+                    },
+                    0x18 => {
+                        // sound timer = Vx
+                        // not emulating sound for now. Skipping
                         self.increment_pc();
                     },
                     0x1E => {
