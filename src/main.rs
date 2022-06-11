@@ -14,7 +14,7 @@ mod keyboard;
 mod bus;
 
 fn main() {
-    let mut file = File::open("data/INVADERS").unwrap();
+    let mut file = File::open("data/15PUZZLE").unwrap();
     let mut data: Vec<u8> = Vec::new();
     file.read_to_end(&mut data).unwrap_or_default();
 

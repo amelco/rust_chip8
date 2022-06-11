@@ -1,5 +1,3 @@
-use minifb::{Window, KeyRepeat, Key};
-
 pub struct Keyboard {
     key_pressed: Option<u8>
 }

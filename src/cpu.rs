@@ -1,5 +1,9 @@
+extern crate rand;
+
 use std::fmt;
 use crate::bus::Bus;
+use self::rand::thread_rng;
+use self::rand::Rng;
 
 pub const PROGRAM_START: u16 = 0x200;
 
@@ -126,17 +130,35 @@ impl Cpu {
                     },
                     6 => {
                         // Vx = Vx SHR 1
-                        self.write_reg_vx(0xF, vy & 0x1);
-                        self.write_reg_vx(y, vy >> 1);
-                        self.write_reg_vx(x, vy >> 1);
+                        self.write_reg_vx(0xF, vx & 0x1);
+                        self.write_reg_vx(x, vx >> 1);
                     },
                     _ => panic!("Unrecognized instruction at {:#X}: {:#X}", self.pc, instruction)
+                }
+                self.increment_pc();
+            },
+            0x9 => {
+                let vx = self.read_reg_vx(x);
+                let vy = self.read_reg_vx(y);
+                if vx != vy {
+                    self.increment_pc();
                 }
                 self.increment_pc();
             },
             0xA => {
                 // I = nnn
                 self.write_reg_i(nnn);
+                self.increment_pc();
+            },
+            0xB => {
+                let v0 = self.read_reg_vx(0);
+                self.pc = nnn + v0 as u16;
+            },
+            0xC => {
+                // Vx = random byte AND kk
+                let mut rng = thread_rng();
+                let number = rng.gen_range(0, 255);
+                self.write_reg_vx(x, number & kk);
                 self.increment_pc();
             },
             0xD => {
@@ -199,13 +221,40 @@ impl Cpu {
                         self.write_reg_i(new_i);
                         self.increment_pc();
                     },
+                    0x29 => {
+                        // I = location of sprite for digit Vx
+                        // Times 5 because each sprite has 5 lines. Each line is 1 byte.
+                        let loc = self.read_reg_vx(x) as u16 * 5;
+                        self.write_reg_i(loc);
+                        self.increment_pc();
+
+                    }
+                    0x33 => {
+                        // stores BCD representation of Vx in memory locations I, I+1, and I+2
+                        let vx = self.read_reg_vx(x);
+                        let v100 =  vx / 100;
+                        let v10  = (vx - (v100 * 100)) / 10;
+                        let v1   = (vx - (v100 * 100) - (v10 * 10)) / 1;
+                        bus.ram_write_byte(self.i,   v100);
+                        bus.ram_write_byte(self.i+1, v10);
+                        bus.ram_write_byte(self.i+2, v1);
+                        self.increment_pc();
+                    },
+                    0x55 => {
+                        // stores into memory values from v0 to vx starting from I
+                        for index in 0..x {
+                            let value = self.read_reg_vx(index);
+                            bus.ram_write_byte(self.i + index as u16, value);
+                        }
+                        self.increment_pc();
+                    },
                     0x65 => {
                         // load v0 to vx from memory starting at I
-                        for reg in 0..x+1 {
-                            let value = bus.ram_read_byte(self.i + reg as u16);
-                            self.write_reg_vx(reg, value);
-                            self.increment_pc();
+                        for index in 0..x+1 {
+                            let value = bus.ram_read_byte(self.i + index as u16);
+                            self.write_reg_vx(index, value);
                         }
+                        self.increment_pc();
                     },
                     _ => panic!("Unrecognized instruction at {:#X}: {:#X}", self.pc, instruction)
                 }
